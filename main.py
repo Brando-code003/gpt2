@@ -1,4 +1,5 @@
 import numpy as np
+import tiktoken
 from tokenizer import enc
 
 
@@ -168,11 +169,22 @@ class GPT:
         x = layer_norm(x, self.gamma_f, self.beta_f)
         return x @ self.W_vocab
 
+def generate(model, enc, prompt, num_new_tokens=10):
+    ids = enc.encode(prompt)
+    for _ in range(num_new_tokens):
+        logits = model.forward(np.array([ids])) # (1, T, vocab_size)
+        next_id = int(np.argmax(logits[0, -1])) # best guess after the LAST word
+        ids.append(next_id)
+        print(enc.decode(ids))
+    return enc.decode(ids)
+
+
 
 
 
 if __name__ == "__main__":
-    ids = np.array([enc.encode("I love Brando Code Videos")])  # (1, T)
+    enc = tiktoken.get_encoding("gpt2")
+    ids = np.array([enc.encode("I love Brando Code videos")])  # (1, T)
 
     inputs = ids[:, :-1]   # what the model sees
     targets = ids[:, 1:]   # the next token at each position
@@ -184,3 +196,5 @@ if __name__ == "__main__":
     print("token ids:   ", ids)
     print("logits shape:", logits.shape)
     print("loss:        ", loss, " (random guessing ≈", np.log(enc.n_vocab), ")")
+
+    generate(model, enc, "I love Brando Code ", num_new_tokens=5)
